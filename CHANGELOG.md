@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.1] - 2026-05-29
+
+### Fixed
+- **`dtctl apply --id` and `--write-id --id` now trigger UPDATE for settings objects** — the `--id` CLI flag (which injects `doc["id"]` into the resource payload) was being silently ignored when the resource was a Settings 2.0 object; `applySettings` only inspected `objectId` (camelCase) and `objectid` (lowercase) to decide between POST and PUT, so every invocation with `--id` still sent a POST (CREATE) — returning HTTP 400 from the DT Settings API when an object with the same `identifier` already existed; `doc["id"]` is now accepted as a final fallback in the objectID resolution chain, so the flag behaves consistently for settings objects as it does for dashboards, notebooks, and workflows; fixes [#255](https://github.com/dynatrace-oss/dtctl/issues/255)
+- **`dtctl apply --dry-run` now correctly reports `"action": "updated"` for settings objects that carry `objectId` or `objectid`** — the dry-run code path checked `doc["id"]` (never present on settings objects) to determine the planned action, so it always returned `"action": "created"` regardless of what was in the file; for `ResourceSettings`, dry-run now also checks `objectId` and `objectid`, matching the logic used by actual apply — so a file produced by `dtctl get settings -o yaml` (which includes `objectid:`) reports `"updated"` in dry-run, as expected; fixes [#256](https://github.com/dynatrace-oss/dtctl/issues/256)
+
 ## [0.28.0] - 2026-05-26
 
 ### Added
