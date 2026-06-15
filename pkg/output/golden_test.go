@@ -2,6 +2,7 @@ package output
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dynatrace-oss/dtctl/pkg/resources/analyzer"
 	"github.com/dynatrace-oss/dtctl/pkg/resources/anomalydetector"
 	"github.com/dynatrace-oss/dtctl/pkg/resources/appengine"
 	"github.com/dynatrace-oss/dtctl/pkg/resources/azureconnection"
@@ -679,6 +681,120 @@ func TestGolden_GetDocuments(t *testing.T) {
 				t.Fatalf("PrintList failed: %v", err)
 			}
 			assertGolden(t, "get/documents-"+name, buf.String())
+		})
+	}
+}
+
+// dashboardWithContentFixture models a single dashboard as returned by
+// `get dashboard <id>` — with a populated Content body. This is the path the
+// content-as-raw-bytes regression broke; the list fixtures above never set
+// Content, so it must be guarded explicitly here.
+func dashboardWithContentFixture() document.Document {
+	return document.Document{
+		ID:        "c8e42bc8-a9bd-433f-85c7-343017c0836a",
+		Name:      "Smartscape Overview",
+		Type:      "dashboard",
+		Owner:     "user-a@example.invalid",
+		IsPrivate: false,
+		Created:   fixedTime,
+		Version:   784,
+		Modified:  fixedTime.Add(2 * time.Hour),
+		Content: []byte(`{"version":18,"tiles":{"0":{"type":"data",` +
+			`"title":"Host count","query":"fetch dt.entity.host | summarize count()"}},` +
+			`"layouts":{"0":{"x":0,"y":0,"w":12,"h":6}}}`),
+	}
+}
+
+func TestGolden_GetDashboardWithContent(t *testing.T) {
+	doc := dashboardWithContentFixture()
+
+	formats := map[string]string{
+		"json": "json",
+		"yaml": "yaml",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.Print(doc); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "get/dashboard-content-"+name, buf.String())
+		})
+	}
+}
+
+// analyzerDefinitionFixture models a single analyzer as returned by
+// `get analyzer <name>`. Input/Output are json.RawMessage ([]byte): without a
+// MarshalYAML they render as a list of raw byte values in YAML, and the
+// display-only CategoryName (json:"-") would leak in with reflection casing.
+func analyzerDefinitionFixture() analyzer.AnalyzerDefinition {
+	return analyzer.AnalyzerDefinition{
+		Name:         "dt.statistics.GenericForecastAnalyzer",
+		DisplayName:  "Generic Forecast Analyzer",
+		Description:  "Forecasts a numeric time series",
+		Type:         "DAVIS",
+		CategoryName: "Forecast",
+		BaseAnalyzer: "dt.statistics.BaseForecastAnalyzer",
+		Input:        json.RawMessage(`{"fields":[{"name":"timeSeriesData","type":"timeseries","required":true}]}`),
+		Output:       json.RawMessage(`{"fields":[{"name":"forecastValues","type":"timeseries"}]}`),
+	}
+}
+
+func TestGolden_GetAnalyzerDefinition(t *testing.T) {
+	def := analyzerDefinitionFixture()
+
+	formats := map[string]string{
+		"json": "json",
+		"yaml": "yaml",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.Print(def); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "get/analyzer-definition-"+name, buf.String())
+		})
+	}
+}
+
+// snapshotFixture models a document snapshot as returned by `dtctl history`.
+// CreatedBy/CreatedTime are json:"-" display duplicates of ModificationInfo and
+// must not leak into json/yaml output.
+func snapshotFixture() document.Snapshot {
+	return document.Snapshot{
+		SnapshotVersion: 3,
+		DocumentVersion: 12,
+		Description:     "before bulk edit",
+		ModificationInfo: document.SnapshotModInfo{
+			CreatedBy:   "user-a@example.invalid",
+			CreatedTime: fixedTime,
+		},
+		CreatedBy:   "user-a@example.invalid",
+		CreatedTime: fixedTime,
+	}
+}
+
+func TestGolden_GetSnapshot(t *testing.T) {
+	snap := snapshotFixture()
+
+	formats := map[string]string{
+		"json": "json",
+		"yaml": "yaml",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.Print(snap); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "get/snapshot-"+name, buf.String())
 		})
 	}
 }
