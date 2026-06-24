@@ -131,6 +131,9 @@ var defaultPatterns = []string{
 	"Use '--agent' for JSON output with operational metadata",
 	"Use 'dtctl wait' in CI/CD to poll for conditions",
 	"Always specify '--context' in automation scripts",
+	"Query Smartscape topology nodes with: dtctl query 'smartscapeNodes \"<TYPE>\" | limit 50'",
+	"Discover all Smartscape node types in the tenant with: dtctl query 'smartscapeNodes \"*\" | dedup type | fields type'",
+	"Find all database-related Smartscape node types with: dtctl query 'smartscapeNodes \"*\" | dedup type | fields type | filter type ~ \"*DB*\"'",
 }
 
 // antipatterns are common mistakes agents should avoid.
@@ -139,6 +142,7 @@ var defaultAntipatterns = []string{
 	"Don't parse table output — use '-o json' or '--agent'",
 	"Don't hardcode resource IDs — use 'dtctl get' to discover them",
 	"Don't skip 'dtctl diff' before 'dtctl apply' in production contexts",
+	"Don't guess Smartscape node type IDs — run 'smartscapeNodes \"*\" | dedup type | fields type' first to enumerate valid types",
 }
 
 var defaultTimeFormats = &TimeFormats{
