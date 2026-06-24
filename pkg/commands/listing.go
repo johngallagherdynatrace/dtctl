@@ -133,7 +133,6 @@ var defaultPatterns = []string{
 	"Always specify '--context' in automation scripts",
 	"Query Smartscape topology nodes with: dtctl query 'smartscapeNodes \"<TYPE>\" | limit 50'",
 	"Discover all Smartscape node types in the tenant with: dtctl query 'smartscapeNodes \"*\" | dedup type | fields type'",
-	"Find all database-related Smartscape node types with: dtctl query 'smartscapeNodes \"*\" | dedup type | fields type | filter type ~ \"*DB*\"'",
 }
 
 // antipatterns are common mistakes agents should avoid.
